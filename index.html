@@ -1,0 +1,837 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="theme-color" content="#ea580c" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <title>পঞ্চায়েত ও মন্দির পরিচালনা অ্যাপ</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: 'Hind Siliguri', sans-serif; background-color: #fff7ed; color: #1e293b; }
+    .card-shadow { box-shadow: 0 4px 15px rgba(234, 88, 12, 0.08); }
+    @media print {
+      body * { visibility: hidden; }
+      #printArea, #printArea * { visibility: visible; }
+      #printArea { position: absolute; left: 0; top: 0; width: 100%; background: white; padding: 20px; }
+      .no-print { display: none !important; }
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col">
+
+  <!-- Notice Banner -->
+  <div id="noticeBanner" class="hidden bg-amber-600 text-white text-center py-2 px-4 text-sm font-medium shadow"></div>
+
+  <!-- Top Header -->
+  <header class="bg-gradient-to-r from-orange-600 to-red-700 text-white shadow-md sticky top-0 z-40">
+    <div class="max-w-5xl mx-auto px-4 py-3 flex justify-between items-center">
+      <div>
+        <h1 id="appTitle" class="text-xl font-bold tracking-wide">শ্রীশ্রী সর্বজনীন মন্দির ও পঞ্চায়েত</h1>
+        <p id="appSubtitle" class="text-xs text-orange-100">হিন্দু সমাজ ও পূজা পরিচালনা পরিষদ</p>
+      </div>
+      <div id="userControls" class="hidden flex items-center gap-2">
+        <span id="loggedUserBadge" class="bg-white/20 px-2.5 py-1 rounded-full text-xs font-medium"></span>
+        <button onclick="logout()" class="bg-red-900 hover:bg-red-950 text-white text-xs px-3 py-1.5 rounded-lg font-medium transition">লগআউট</button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Container -->
+  <main class="flex-1 max-w-5xl w-full mx-auto p-4">
+
+    <!-- AUTH SECTION (Login / Signup / Admin Login) -->
+    <section id="authSection" class="max-w-md mx-auto mt-6 bg-white rounded-2xl p-6 card-shadow border border-orange-100">
+      <div class="flex border-b border-gray-200 mb-5">
+        <button id="tabUserLogin" onclick="switchAuthTab('userLogin')" class="flex-1 py-2 text-sm font-bold text-orange-600 border-b-2 border-orange-600">সদস্য লগইন</button>
+        <button id="tabSignup" onclick="switchAuthTab('signup')" class="flex-1 py-2 text-sm font-medium text-gray-500">নতুন নিবন্ধন</button>
+        <button id="tabAdminLogin" onclick="switchAuthTab('adminLogin')" class="flex-1 py-2 text-sm font-medium text-gray-500">অ্যাডমিন</button>
+      </div>
+
+      <!-- Member Login Form -->
+      <form id="userLoginForm" onsubmit="handleUserLogin(event)" class="space-y-4">
+        <div>
+          <label class="block text-sm font-semibold mb-1">ইউজার আইডি / নাম</label>
+          <input type="text" id="loginUsername" required placeholder="আপনার ইউজার আইডি দিন" class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500" />
+        </div>
+        <div>
+          <label class="block text-sm font-semibold mb-1">পাসওয়ার্ড</label>
+          <input type="password" id="loginPassword" required placeholder="••••••••" class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500" />
+        </div>
+        <button type="submit" class="w-full bg-orange-600 hover:bg-orange-700 text-white font-bold py-2.5 rounded-lg shadow transition">প্রবেশ করুন (Log In)</button>
+      </form>
+
+      <!-- Signup Form -->
+      <form id="signupForm" onsubmit="handleSignup(event)" class="hidden space-y-3">
+        <div>
+          <label class="block text-sm font-semibold mb-1">পূর্ণ নাম</label>
+          <input type="text" id="regName" required placeholder="যেমন: সুব্রত দাস" class="w-full px-3 py-2 border rounded-lg" />
+        </div>
+        <div>
+          <label class="block text-sm font-semibold mb-1">ইউজার আইডি (Login ID)</label>
+          <input type="text" id="regUsername" required placeholder="ইংরেজিতে লিখুন (যেমন: subrata)" class="w-full px-3 py-2 border rounded-lg" />
+        </div>
+        <div>
+          <label class="block text-sm font-semibold mb-1">পদবি নির্বাচন করুন</label>
+          <select id="regRole" class="w-full px-3 py-2 border rounded-lg bg-white">
+            <option value="সদস্য">সাধারণ সদস্য</option>
+            <option value="বিষয় ভিত্তিক সম্পাদক">বিষয় ভিত্তিক সম্পাদক (পূজা/উন্নয়ন)</option>
+            <option value="সাধারণ সম্পাদক">সাধারণ সম্পাদক</option>
+            <option value="সভাপতি">সভাপতি</option>
+            <option value="কোষাধ্যক্ষ">কোষাধ্যক্ষ</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-sm font-semibold mb-1">পাসওয়ার্ড</label>
+          <input type="password" id="regPassword" required placeholder="••••••••" class="w-full px-3 py-2 border rounded-lg" />
+        </div>
+        <div>
+          <label class="block text-sm font-semibold mb-1">পাসওয়ার্ড নিশ্চিত করুন</label>
+          <input type="password" id="regConfirmPass" required placeholder="••••••••" class="w-full px-3 py-2 border rounded-lg" />
+        </div>
+        <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 rounded-lg shadow">অনুমোদনের জন্য পাঠান</button>
+      </form>
+
+      <!-- Admin Login Form -->
+      <form id="adminLoginForm" onsubmit="handleAdminLogin(event)" class="hidden space-y-4">
+        <div class="bg-amber-50 border border-amber-200 p-2.5 rounded-lg text-xs text-amber-800">
+          ডিফল্ট অ্যাডমিন আইডি: <b>admin</b> | পাসওয়ার্ড: <b>1234</b> (ভেতরে গিয়ে পরিবর্তন করা যাবে)
+        </div>
+        <div>
+          <label class="block text-sm font-semibold mb-1">অ্যাডমিন আইডি</label>
+          <input type="text" id="adminUser" required placeholder="admin" class="w-full px-3 py-2 border rounded-lg" />
+        </div>
+        <div>
+          <label class="block text-sm font-semibold mb-1">অ্যাডমিন পাসওয়ার্ড</label>
+          <input type="password" id="adminPass" required placeholder="••••" class="w-full px-3 py-2 border rounded-lg" />
+        </div>
+        <button type="submit" class="w-full bg-slate-800 hover:bg-slate-900 text-white font-bold py-2.5 rounded-lg shadow">অ্যাডমিন প্যানেলে প্রবেশ</button>
+      </form>
+    </section>
+
+    <!-- ADMIN PANEL SECTION -->
+    <section id="adminSection" class="hidden space-y-5">
+      <div class="bg-white p-4 rounded-xl card-shadow flex flex-wrap gap-2 justify-between items-center border border-orange-100">
+        <h2 class="text-lg font-bold text-slate-800">অ্যাডমিন কন্ট্রোল প্যানেল</h2>
+        <div class="flex flex-wrap gap-2">
+          <button onclick="showAdminTab('approvals')" class="px-3 py-1.5 bg-orange-100 text-orange-800 rounded-lg text-xs font-bold">আইডি অনুমোদন ও তালিকা</button>
+          <button onclick="showAdminTab('aiStudio')" class="px-3 py-1.5 bg-indigo-100 text-indigo-800 rounded-lg text-xs font-bold">AI আপডেট ও সেটিং</button>
+          <button onclick="showAdminTab('adminSecurity')" class="px-3 py-1.5 bg-slate-200 text-slate-800 rounded-lg text-xs font-bold">পাসওয়ার্ড পরিবর্তন</button>
+        </div>
+      </div>
+
+      <!-- Admin Tab 1: User Approvals & Password Reset -->
+      <div id="adminTabApprovals" class="bg-white p-5 rounded-xl card-shadow space-y-4">
+        <h3 class="font-bold text-base border-b pb-2 text-orange-700">অপেক্ষমাণ নিবন্ধন অনুরোধ (Pending Approvals)</h3>
+        <div id="pendingUsersList" class="space-y-2 text-sm"></div>
+
+        <h3 class="font-bold text-base border-b pb-2 pt-4 text-emerald-700">অনুমোদিত সদস্য ও কমিটি তালিকা</h3>
+        <div class="overflow-x-auto">
+          <table class="w-full text-left border-collapse text-sm">
+            <thead>
+              <tr class="bg-gray-100">
+                <th class="p-2 border">নাম</th>
+                <th class="p-2 border">ইউজার আইডি</th>
+                <th class="p-2 border">পদবি</th>
+                <th class="p-2 border">পাসওয়ার্ড</th>
+                <th class="p-2 border">অ্যাকশন</th>
+              </tr>
+            </thead>
+            <tbody id="approvedUsersTable"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Admin Tab 2: AI Customization & App Update -->
+      <div id="adminTabAiStudio" class="hidden bg-white p-5 rounded-xl card-shadow space-y-4">
+        <h3 class="font-bold text-base text-indigo-700 border-b pb-2">অ্যাপ কাস্টমাইজেশন ও নতুন খাত সংযোজন</h3>
+        <div class="grid md:grid-cols-2 gap-4 text-sm">
+          <div>
+            <label class="block font-semibold mb-1">সংগঠন / মন্দিরের নাম (প্যাডের শিরোনাম)</label>
+            <input type="text" id="cfgOrgName" class="w-full p-2 border rounded-lg" />
+          </div>
+          <div>
+            <label class="block font-semibold mb-1">উপ-শিরোনাম / ঠিকানা</label>
+            <input type="text" id="cfgOrgSub" class="w-full p-2 border rounded-lg" />
+          </div>
+          <div>
+            <label class="block font-semibold mb-1">সদস্যদের নির্ধারিত মাসিক/বার্ষিক চাঁদা (টাকা)</label>
+            <input type="number" id="cfgFixedFee" class="w-full p-2 border rounded-lg" />
+          </div>
+          <div>
+            <label class="block font-semibold mb-1">জরুরি নোটিশ ব্যানার (ফাঁকা রাখলে বন্ধ থাকবে)</label>
+            <input type="text" id="cfgNotice" placeholder="যেমন: আগামী শুক্রবার দুর্গা পূজার প্রস্তুতি সভা..." class="w-full p-2 border rounded-lg" />
+          </div>
+        </div>
+        <div class="pt-2">
+          <label class="block font-semibold text-sm mb-1">নতুন পূজা বা হিসাবের খাত যোগ করুন</label>
+          <div class="flex gap-2">
+            <input type="text" id="newCategoryInput" placeholder="যেমন: সরস্বতী পূজা, রথযাত্রা, শ্মশান উন্নয়ন" class="flex-1 p-2 border rounded-lg text-sm" />
+            <button onclick="addNewCategory()" class="bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm font-bold">যোগ করুন</button>
+          </div>
+          <div id="categoryTags" class="flex flex-wrap gap-2 mt-2"></div>
+        </div>
+        <button onclick="saveAppSettings()" class="bg-emerald-600 text-white px-5 py-2.5 rounded-lg text-sm font-bold shadow">সকল পরিবর্তন সংরক্ষণ করুন</button>
+      </div>
+
+      <!-- Admin Tab 3: Admin Password Change -->
+      <div id="adminTabSecurity" class="hidden bg-white p-5 rounded-xl card-shadow max-w-md space-y-3">
+        <h3 class="font-bold text-base border-b pb-2">অ্যাডমিন পাসওয়ার্ড পরিবর্তন</h3>
+        <div>
+          <label class="block text-sm font-semibold mb-1">নতুন পাসওয়ার্ড দিন</label>
+          <input type="password" id="newAdminPassword" class="w-full p-2 border rounded-lg" />
+        </div>
+        <button onclick="changeAdminPassword()" class="bg-slate-800 text-white px-4 py-2 rounded-lg text-sm font-bold">পাসওয়ার্ড আপডেট করুন</button>
+      </div>
+    </section>
+
+    <!-- MAIN APP DASHBOARD (For Approved Committee & Members) -->
+    <section id="appSection" class="hidden space-y-5">
+      
+      <!-- Summary Cards -->
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <div class="bg-white p-4 rounded-xl card-shadow border-l-4 border-emerald-500">
+          <p class="text-xs text-gray-500 font-semibold">মোট আয় (জমা)</p>
+          <p id="statTotalIncome" class="text-xl font-bold text-emerald-700">৳ ০</p>
+        </div>
+        <div class="bg-white p-4 rounded-xl card-shadow border-l-4 border-red-500">
+          <p class="text-xs text-gray-500 font-semibold">মোট ব্যয় (পরিশোধিত)</p>
+          <p id="statTotalExpense" class="text-xl font-bold text-red-700">৳ ০</p>
+        </div>
+        <div class="bg-white p-4 rounded-xl card-shadow border-l-4 border-orange-500">
+          <p class="text-xs text-gray-500 font-semibold">বর্তমান তহবিল (Balance)</p>
+          <p id="statBalance" class="text-xl font-bold text-orange-700">৳ ০</p>
+        </div>
+        <div class="bg-white p-4 rounded-xl card-shadow border-l-4 border-amber-500">
+          <p class="text-xs text-gray-500 font-semibold">সদস্যদের মোট বকেয়া</p>
+          <p id="statTotalDue" class="text-xl font-bold text-amber-700">৳ ০</p>
+        </div>
+      </div>
+
+      <!-- Navigation Tabs -->
+      <div class="flex overflow-x-auto gap-2 bg-white p-2 rounded-xl card-shadow">
+        <button onclick="switchAppTab('income')" id="btnTabIncome" class="px-4 py-2 rounded-lg text-sm font-bold bg-orange-600 text-white whitespace-nowrap">আয় ও চাঁদা গ্রহণ</button>
+        <button onclick="switchAppTab('expense')" id="btnTabExpense" class="px-4 py-2 rounded-lg text-sm font-bold text-gray-600 hover:bg-orange-50 whitespace-nowrap">ব্যয় ও বিল অনুমোদন</button>
+        <button onclick="switchAppTab('ledger')" id="btnTabLedger" class="px-4 py-2 rounded-lg text-sm font-bold text-gray-600 hover:bg-orange-50 whitespace-nowrap">হিসাব বিবরণী ও এক্সেল</button>
+        <button onclick="switchAppTab('committee')" id="btnTabCommittee" class="px-4 py-2 rounded-lg text-sm font-bold text-gray-600 hover:bg-orange-50 whitespace-nowrap">কমিটি ও সদস্যবৃন্দ</button>
+      </div>
+
+      <!-- TAB 1: INCOME & SUBSCRIPTION ENTRY -->
+      <div id="tabIncome" class="bg-white p-5 rounded-xl card-shadow space-y-4">
+        <div class="flex justify-between items-center border-b pb-2">
+          <h3 class="font-bold text-lg text-emerald-700">আয় ও সদস্য চাঁদা এন্ট্রি</h3>
+          <span class="text-xs bg-emerald-100 text-emerald-800 px-2.5 py-1 rounded-full font-semibold">নির্ধারিত চাঁদা: ৳ <span id="displayFixedFee">500</span></span>
+        </div>
+
+        <form onsubmit="addIncome(event)" class="grid md:grid-cols-2 gap-4 text-sm">
+          <div>
+            <label class="block font-semibold mb-1">আয়ের খাত / পূজার নাম</label>
+            <select id="incCategory" class="w-full p-2.5 border rounded-lg bg-white category-select"></select>
+          </div>
+          <div>
+            <label class="block font-semibold mb-1">আয়ের ধরন</label>
+            <select id="incType" class="w-full p-2.5 border rounded-lg bg-white">
+              <option value="গ্রামের চাঁদা">১. গ্রামের / সদস্য চাঁদা</option>
+              <option value="বাহিরের চাঁদা">২. বাহিরের চাঁদা</option>
+              <option value="অনুদান">৩. বিশেষ অনুদান / প্রণামী</option>
+            </select>
+          </div>
+          <div>
+            <label class="block font-semibold mb-1">দাতার / সদস্যের নাম</label>
+            <input type="text" id="incDonorName" required placeholder="সদস্য বা দাতার নাম লিখুন" class="w-full p-2.5 border rounded-lg" />
+          </div>
+          <div>
+            <label class="block font-semibold mb-1">জমাকৃত টাকার পরিমাণ (৳)</label>
+            <input type="number" id="incAmount" oninput="calculateDue()" required placeholder="যেমন: 300" class="w-full p-2.5 border rounded-lg font-bold text-emerald-700" />
+          </div>
+          <div>
+            <label class="block font-semibold mb-1">বাকি / বকেয়া টাকা (অটোমেটিক হিসাব)</label>
+            <input type="number" id="incDue" readonly value="0" class="w-full p-2.5 border rounded-lg bg-gray-100 text-red-600 font-bold" />
+          </div>
+          <div>
+            <label class="block font-semibold mb-1">তারিখ ও সময় (অটোমেটিক)</label>
+            <input type="text" id="incDateTime" readonly class="w-full p-2.5 border rounded-lg bg-gray-100 text-gray-600" />
+          </div>
+          <div class="md:col-span-2">
+            <button type="submit" class="w-full md:w-auto bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-6 py-2.5 rounded-lg shadow">আয় গ্রহণ করুন (Receive)</button>
+          </div>
+        </form>
+      </div>
+
+      <!-- TAB 2: EXPENSE & 3-TIER APPROVAL -->
+      <div id="tabExpense" class="hidden space-y-5">
+        <!-- Create Bill Form (Only Subject Editor or General Secretary can create) -->
+        <div class="bg-white p-5 rounded-xl card-shadow">
+          <h3 class="font-bold text-lg text-red-700 border-b pb-2 mb-4">নতুন ব্যয় / বিল প্রস্তুত করুন (বিষয় ভিত্তিক সম্পাদক)</h3>
+          <form onsubmit="createExpenseBill(event)" class="grid md:grid-cols-2 gap-4 text-sm">
+            <div>
+              <label class="block font-semibold mb-1">পূজা বা প্রকল্পের খাত</label>
+              <select id="expCategory" class="w-full p-2.5 border rounded-lg bg-white category-select"></select>
+            </div>
+            <div>
+              <label class="block font-semibold mb-1">ব্যয়ের বিবরণ / খাত</label>
+              <input type="text" id="expTitle" required placeholder="যেমন: প্রতিমা নির্মাণ, প্যান্ডেল, প্রসাদ" class="w-full p-2.5 border rounded-lg" />
+            </div>
+            <div>
+              <label class="block font-semibold mb-1">টাকার পরিমাণ (৳)</label>
+              <input type="number" id="expAmount" required placeholder="0" class="w-full p-2.5 border rounded-lg font-bold text-red-700" />
+            </div>
+            <div>
+              <label class="block font-semibold mb-1">বকেয়া টাকার পরিমাণ (যদি থাকে)</label>
+              <input type="number" id="expDue" value="0" class="w-full p-2.5 border rounded-lg" />
+            </div>
+            <div class="md:col-span-2">
+              <label class="block font-semibold mb-1">ক্যাশমেমো / ভাউচারের ছবি সংযুক্ত করুন (ঐচ্ছিক)</label>
+              <input type="file" id="expReceiptImg" accept="image/*" class="w-full p-2 border rounded-lg bg-gray-50 text-xs" />
+            </div>
+            <div class="md:col-span-2">
+              <button type="submit" class="bg-orange-600 hover:bg-orange-700 text-white font-bold px-6 py-2.5 rounded-lg shadow">অনুমোদনের জন্য পাঠান</button>
+            </div>
+          </form>
+        </div>
+
+        <!-- Bill Approval Pipeline -->
+        <div class="bg-white p-5 rounded-xl card-shadow">
+          <h3 class="font-bold text-base text-slate-800 border-b pb-2 mb-3">বিল অনুমোদন তালিকা (৩-স্তর বিশিষ্ট অনুমোদন প্রক্রিয়া)</h3>
+          <p class="text-xs text-gray-500 mb-3">ধাপ ১: বিষয় ভিত্তিক সম্পাদক বিল তৈরি করবেন ➔ ধাপ ২: সাধারণ সম্পাদক অনুমোদন দেবেন ➔ ধাপ ৩: সভাপতি অনুমোদন দেবেন ➔ ধাপ ৪: কোষাধ্যক্ষ বিল প্রদান করবেন।</p>
+          <div id="billsPipelineList" class="space-y-3"></div>
+        </div>
+      </div>
+
+      <!-- TAB 3: LEDGER, FILTER & EXCEL / PDF -->
+      <div id="tabLedger" class="hidden bg-white p-5 rounded-xl card-shadow space-y-4">
+        <div class="flex flex-wrap justify-between items-center gap-2 border-b pb-3">
+          <h3 class="font-bold text-lg text-slate-800">আয়-ব্যয় হিসাব বিবরণী</h3>
+          <div class="flex gap-2">
+            <button onclick="exportToExcel()" class="bg-emerald-700 hover:bg-emerald-800 text-white text-xs px-3 py-2 rounded-lg font-bold">Excel ডাউনলোড</button>
+            <button onclick="printPadReport()" class="bg-slate-800 hover:bg-slate-900 text-white text-xs px-3 py-2 rounded-lg font-bold">প্যাডে প্রিন্ট / PDF</button>
+          </div>
+        </div>
+
+        <!-- Filters -->
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-2 text-sm bg-orange-50 p-3 rounded-lg">
+          <div>
+            <label class="block text-xs font-bold mb-1">খাত / পূজা নির্বাচন</label>
+            <select id="filterCategory" onchange="renderLedger()" class="w-full p-2 border rounded bg-white">
+              <option value="ALL">সকল খাত একসাথে</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-bold mb-1">বছর (Year)</label>
+            <select id="filterYear" onchange="renderLedger()" class="w-full p-2 border rounded bg-white">
+              <option value="ALL">সকল বছর</option>
+              <option value="2026" selected>২০২৬</option>
+              <option value="2025">২০২৫</option>
+              <option value="2027">২০২৭</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-bold mb-1">মাস (Month)</label>
+            <select id="filterMonth" onchange="renderLedger()" class="w-full p-2 border rounded bg-white">
+              <option value="ALL">সকল মাস</option>
+              <option value="01">জানুয়ারি</option>
+              <option value="02">ফেব্রুয়ারি</option>
+              <option value="03">মার্চ</option>
+              <option value="04">এপ্রিল</option>
+              <option value="05">মে</option>
+              <option value="06">জুন</option>
+              <option value="07">জুলাই</option>
+              <option value="08">আগস্ট</option>
+              <option value="09">সেপ্টেম্বর</option>
+              <option value="10">অক্টোবর</option>
+              <option value="11">নভেম্বর</option>
+              <option value="12">ডিসেম্বর</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-bold mb-1">লেনদেনের ধরন</label>
+            <select id="filterFlow" onchange="renderLedger()" class="w-full p-2 border rounded bg-white">
+              <option value="ALL">আয় ও ব্যয় উভয়ই</option>
+              <option value="INCOME">শুধুমাত্র আয়</option>
+              <option value="EXPENSE">শুধুমাত্র ব্যয়</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Printable Pad Area -->
+        <div id="printArea" class="space-y-3">
+          <div class="hidden print:block text-center border-b-2 border-orange-600 pb-3 mb-4">
+            <h1 id="padTitle" class="text-2xl font-bold text-orange-700">শ্রীশ্রী সর্বজনীন মন্দির ও পঞ্চায়েত</h1>
+            <p id="padSub" class="text-sm text-gray-600">হিন্দু সমাজ ও পূজা পরিচালনা পরিষদ</p>
+            <p class="text-xs mt-1 font-semibold">আয়-ব্যয় ও তহবিল বিবরণী</p>
+          </div>
+
+          <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse text-xs md:text-sm">
+              <thead>
+                <tr class="bg-orange-100 text-orange-900">
+                  <th class="p-2 border">তারিখ</th>
+                  <th class="p-2 border">খাত / পূজা</th>
+                  <th class="p-2 border">বিবরণ / দাতা</th>
+                  <th class="p-2 border">ধরন</th>
+                  <th class="p-2 border text-right">টাকা (৳)</th>
+                  <th class="p-2 border text-right">বকেয়া (৳)</th>
+                  <th class="p-2 border text-center no-print">প্রমাণপত্র</th>
+                </tr>
+              </thead>
+              <tbody id="ledgerTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB 4: COMMITTEE MEMBERS -->
+      <div id="tabCommittee" class="hidden bg-white p-5 rounded-xl card-shadow">
+        <h3 class="font-bold text-lg text-orange-800 border-b pb-2 mb-4">অনুমোদিত কমিটি ও সদস্যবৃন্দের তালিকা</h3>
+        <div id="committeeGrid" class="grid sm:grid-cols-2 md:grid-cols-3 gap-3"></div>
+      </div>
+
+    </section>
+
+  </main>
+
+  <!-- Modal for Viewing Receipt Image -->
+  <div id="imgModal" onclick="this.classList.add('hidden')" class="hidden fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4">
+    <div class="bg-white p-2 rounded-xl max-w-lg w-full">
+      <img id="modalImgSrc" src="" alt="Voucher" class="w-full rounded-lg max-h-[80vh] object-contain" />
+      <p class="text-center text-xs text-gray-600 mt-2">বন্ধ করতে যেকোনো স্থানে ক্লিক করুন</p>
+    </div>
+  </div>
+
+  <script>
+    const DEFAULT_CATEGORIES = [
+      "দুর্গা পূজা", "কালী পূজা", "সরস্বতী পূজা", "মন্দির উন্নয়ন", "সংগঠন পরিচালনা", "এলাকা পরিচালনা"
+    ];
+
+    let appData = JSON.parse(localStorage.getItem('panchayat_app_v3')) || {
+      adminPass: "1234",
+      settings: {
+        orgName: "শ্রীশ্রী সর্বজনীন মন্দির ও পঞ্চায়েত",
+        orgSub: "হিন্দু সমাজ ও পূজা পরিচালনা পরিষদ",
+        fixedFee: 500,
+        notice: "",
+        categories: [...DEFAULT_CATEGORIES]
+      },
+      users: [],
+      incomes: [],
+      expenses: []
+    };
+
+    let currentUser = null;
+
+    function saveState() {
+      localStorage.setItem('panchayat_app_v3', JSON.stringify(appData));
+      refreshUI();
+    }
+
+    function switchAuthTab(tab) {
+      ['userLogin', 'signup', 'adminLogin'].forEach(t => {
+        document.getElementById(t + 'Form').classList.add('hidden');
+        document.getElementById('tab' + t.charAt(0).toUpperCase() + t.slice(1)).className = "flex-1 py-2 text-sm font-medium text-gray-500";
+      });
+      document.getElementById(tab + 'Form').classList.remove('hidden');
+      document.getElementById('tab' + tab.charAt(0).toUpperCase() + tab.slice(1)).className = "flex-1 py-2 text-sm font-bold text-orange-600 border-b-2 border-orange-600";
+    }
+
+    function handleSignup(e) {
+      e.preventDefault();
+      const name = document.getElementById('regName').value.trim();
+      const username = document.getElementById('regUsername').value.trim().toLowerCase();
+      const role = document.getElementById('regRole').value;
+      const password = document.getElementById('regPassword').value;
+      const confirm = document.getElementById('regConfirmPass').value;
+
+      if (password !== confirm) return alert("পাসওয়ার্ড দুটি মেলেনি!");
+      if (appData.users.some(u => u.username === username)) return alert("এই ইউজার আইডি ইতিমধ্যে ব্যবহৃত হয়েছে!");
+
+      appData.users.push({
+        id: Date.now(), name, username, role, password, approved: false
+      });
+      saveState();
+      e.target.reset();
+      alert("আপনার নিবন্ধন সফলভাবে অ্যাডমিনের কাছে পাঠানো হয়েছে। অনুমোদনের পর লগইন করতে পারবেন।");
+      switchAuthTab('userLogin');
+    }
+
+    function handleUserLogin(e) {
+      e.preventDefault();
+      const username = document.getElementById('loginUsername').value.trim().toLowerCase();
+      const password = document.getElementById('loginPassword').value;
+
+      const user = appData.users.find(u => u.username === username && u.password === password);
+      if (!user) return alert("ভুল ইউজার আইডি অথবা পাসওয়ার্ড!");
+      if (!user.approved) return alert("আপনার আইডিটি এখনো অ্যাডমিন কর্তৃক অনুমোদিত হয়নি!");
+
+      currentUser = user;
+      document.getElementById('authSection').classList.add('hidden');
+      document.getElementById('appSection').classList.remove('hidden');
+      document.getElementById('userControls').classList.remove('hidden');
+      document.getElementById('loggedUserBadge').innerText = `${user.name} (${user.role})`;
+      refreshUI();
+    }
+
+    function handleAdminLogin(e) {
+      e.preventDefault();
+      const u = document.getElementById('adminUser').value.trim();
+      const p = document.getElementById('adminPass').value;
+      if (u === 'admin' && p === appData.adminPass) {
+        currentUser = { name: 'Super Admin', role: 'ADMIN' };
+        document.getElementById('authSection').classList.add('hidden');
+        document.getElementById('adminSection').classList.remove('hidden');
+        document.getElementById('userControls').classList.remove('hidden');
+        document.getElementById('loggedUserBadge').innerText = "অ্যাডমিন প্যানেল";
+        loadAdminSettingsFields();
+        refreshUI();
+      } else {
+        alert("অ্যাডমিন আইডি বা পাসওয়ার্ড ভুল!");
+      }
+    }
+
+    function logout() {
+      currentUser = null;
+      document.getElementById('authSection').classList.remove('hidden');
+      document.getElementById('adminSection').classList.add('hidden');
+      document.getElementById('appSection').classList.add('hidden');
+      document.getElementById('userControls').classList.add('hidden');
+    }
+
+    function showAdminTab(tab) {
+      ['Approvals', 'AiStudio', 'AdminSecurity'].forEach(t => {
+        document.getElementById('adminTab' + t).classList.add('hidden');
+      });
+      document.getElementById('adminTab' + tab.charAt(0).toUpperCase() + tab.slice(1)).classList.remove('hidden');
+    }
+
+    function approveUser(id) {
+      const u = appData.users.find(x => x.id === id);
+      if (u) { u.approved = true; saveState(); }
+    }
+
+    function deleteUser(id) {
+      if (confirm("আপনি কি নিশ্চিতভাবে এই সদস্যকে মুছে ফেলতে চান?")) {
+        appData.users = appData.users.filter(x => x.id !== id);
+        saveState();
+      }
+    }
+
+    function resetUserPassword(id) {
+      const newPass = prompt("সদস্যের জন্য নতুন পাসওয়ার্ড লিখুন:");
+      if (newPass && newPass.trim() !== "") {
+        const u = appData.users.find(x => x.id === id);
+        if (u) { u.password = newPass.trim(); saveState(); alert("পাসওয়ার্ড সফলভাবে রিসেট করা হয়েছে!"); }
+      }
+    }
+
+    function loadAdminSettingsFields() {
+      document.getElementById('cfgOrgName').value = appData.settings.orgName;
+      document.getElementById('cfgOrgSub').value = appData.settings.orgSub;
+      document.getElementById('cfgFixedFee').value = appData.settings.fixedFee;
+      document.getElementById('cfgNotice').value = appData.settings.notice || "";
+    }
+
+    function addNewCategory() {
+      const val = document.getElementById('newCategoryInput').value.trim();
+      if (val && !appData.settings.categories.includes(val)) {
+        appData.settings.categories.push(val);
+        document.getElementById('newCategoryInput').value = "";
+        saveState();
+      }
+    }
+
+    function saveAppSettings() {
+      appData.settings.orgName = document.getElementById('cfgOrgName').value.trim() || appData.settings.orgName;
+      appData.settings.orgSub = document.getElementById('cfgOrgSub').value.trim() || appData.settings.orgSub;
+      appData.settings.fixedFee = Number(document.getElementById('cfgFixedFee').value) || 500;
+      appData.settings.notice = document.getElementById('cfgNotice').value.trim();
+      saveState();
+      alert("অ্যাপের নতুন সেটিংস ও আপডেট সংরক্ষিত হয়েছে!");
+    }
+
+    function changeAdminPassword() {
+      const np = document.getElementById('newAdminPassword').value.trim();
+      if (np.length < 4) return alert("পাসওয়ার্ড কমপক্ষে ৪ অক্ষরের হতে হবে!");
+      appData.adminPass = np;
+      document.getElementById('newAdminPassword').value = "";
+      saveState();
+      alert("অ্যাডমিন পাসওয়ার্ড পরিবর্তন হয়েছে!");
+    }
+
+    function calculateDue() {
+      const fixed = Number(appData.settings.fixedFee);
+      const paid = Number(document.getElementById('incAmount').value) || 0;
+      const type = document.getElementById('incType').value;
+      if (type === "গ্রামের চাঁদা") {
+        const due = fixed - paid;
+        document.getElementById('incDue').value = due > 0 ? due : 0;
+      } else {
+        document.getElementById('incDue').value = 0;
+      }
+    }
+
+    function addIncome(e) {
+      e.preventDefault();
+      const now = new Date();
+      appData.incomes.unshift({
+        id: Date.now(),
+        date: now.toLocaleString('bn-BD'),
+        isoDate: now.toISOString().split('T')[0],
+        category: document.getElementById('incCategory').value,
+        type: document.getElementById('incType').value,
+        donor: document.getElementById('incDonorName').value.trim(),
+        amount: Number(document.getElementById('incAmount').value),
+        due: Number(document.getElementById('incDue').value),
+        entryBy: currentUser.name
+      });
+      e.target.reset();
+      document.getElementById('incDue').value = 0;
+      saveState();
+      alert("আয় সফলভাবে তহবিলে জমা হয়েছে!");
+    }
+
+    function createExpenseBill(e) {
+      e.preventDefault();
+      const fileInput = document.getElementById('expReceiptImg');
+      const saveBill = (imgData) => {
+        const now = new Date();
+        appData.expenses.unshift({
+          id: Date.now(),
+          date: now.toLocaleString('bn-BD'),
+          isoDate: now.toISOString().split('T')[0],
+          category: document.getElementById('expCategory').value,
+          title: document.getElementById('expTitle').value.trim(),
+          amount: Number(document.getElementById('expAmount').value),
+          due: Number(document.getElementById('expDue').value) || 0,
+          receiptImg: imgData || null,
+          createdBy: currentUser.name,
+          gsApproved: false,
+          presApproved: false,
+          disbursed: false
+        });
+        e.target.reset();
+        saveState();
+        alert("বিল প্রস্তুত হয়েছে এবং অনুমোদনের জন্য পাঠানো হয়েছে!");
+      };
+
+      if (fileInput.files && fileInput.files[0]) {
+        const reader = new FileReader();
+        reader.onload = (ev) => saveBill(ev.target.result);
+        reader.readAsDataURL(fileInput.files[0]);
+      } else {
+        saveBill(null);
+      }
+    }
+
+    function advanceBillStage(id, stage) {
+      const bill = appData.expenses.find(b => b.id === id);
+      if (!bill) return;
+
+      if (stage === 'GS') {
+        if (currentUser.role !== 'সাধারণ সম্পাদক') return alert("শুধুমাত্র সাধারণ সম্পাদক এই অনুমোদন দিতে পারবেন!");
+        bill.gsApproved = true;
+      } else if (stage === 'PRES') {
+        if (currentUser.role !== 'সভাপতি') return alert("শুধুমাত্র সভাপতি চূড়ান্ত অনুমোদন দিতে পারবেন!");
+        bill.presApproved = true;
+      } else if (stage === 'TREASURER') {
+        if (currentUser.role !== 'কোষাধ্যক্ষ') return alert("শুধুমাত্র কোষাধ্যক্ষ অনুমোদিত বিল প্রদান করতে পারবেন!");
+        bill.disbursed = true;
+      }
+      saveState();
+    }
+
+    function switchAppTab(tab) {
+      ['income', 'expense', 'ledger', 'committee'].forEach(t => {
+        document.getElementById('tab' + t.charAt(0).toUpperCase() + t.slice(1)).classList.add('hidden');
+        document.getElementById('btnTab' + t.charAt(0).toUpperCase() + t.slice(1)).className = "px-4 py-2 rounded-lg text-sm font-bold text-gray-600 hover:bg-orange-50 whitespace-nowrap";
+      });
+      document.getElementById('tab' + tab.charAt(0).toUpperCase() + tab.slice(1)).classList.remove('hidden');
+      document.getElementById('btnTab' + tab.charAt(0).toUpperCase() + tab.slice(1)).className = "px-4 py-2 rounded-lg text-sm font-bold bg-orange-600 text-white whitespace-nowrap";
+      if (tab === 'ledger') renderLedger();
+    }
+
+    function refreshUI() {
+      document.getElementById('appTitle').innerText = appData.settings.orgName;
+      document.getElementById('appSubtitle').innerText = appData.settings.orgSub;
+      document.getElementById('padTitle').innerText = appData.settings.orgName;
+      document.getElementById('padSub').innerText = appData.settings.orgSub;
+      document.getElementById('displayFixedFee').innerText = appData.settings.fixedFee;
+
+      const banner = document.getElementById('noticeBanner');
+      if (appData.settings.notice) {
+        banner.innerText = "📢 " + appData.settings.notice;
+        banner.classList.remove('hidden');
+      } else {
+        banner.classList.add('hidden');
+      }
+
+      document.querySelectorAll('.category-select').forEach(sel => {
+        sel.innerHTML = appData.settings.categories.map(c => `<option value="${c}">${c}</option>`).join('');
+      });
+      const filterCat = document.getElementById('filterCategory');
+      const currentFilterCat = filterCat.value;
+      filterCat.innerHTML = `<option value="ALL">সকল খাত একসাথে</option>` + appData.settings.categories.map(c => `<option value="${c}">${c}</option>`).join('');
+      if (currentFilterCat) filterCat.value = currentFilterCat;
+
+      document.getElementById('categoryTags').innerHTML = appData.settings.categories.map(c => `<span class="bg-orange-100 text-orange-800 px-2.5 py-1 rounded-full text-xs font-semibold">${c}</span>`).join('');
+      document.getElementById('incDateTime').value = new Date().toLocaleString('bn-BD');
+
+      const totalInc = appData.incomes.reduce((s, i) => s + i.amount, 0);
+      const totalDue = appData.incomes.reduce((s, i) => s + (i.due || 0), 0);
+      const totalExp = appData.expenses.filter(e => e.disbursed).reduce((s, e) => s + e.amount, 0);
+      document.getElementById('statTotalIncome').innerText = `৳ ${totalInc}`;
+      document.getElementById('statTotalExpense').innerText = `৳ ${totalExp}`;
+      document.getElementById('statBalance').innerText = `৳ ${totalInc - totalExp}`;
+      document.getElementById('statTotalDue').innerText = `৳ ${totalDue}`;
+
+      const pending = appData.users.filter(u => !u.approved);
+      document.getElementById('pendingUsersList').innerHTML = pending.length === 0 ? `<p class="text-gray-400">কোনো নতুন আবেদন নেই।</p>` :
+        pending.map(u => `
+          <div class="flex justify-between items-center p-2.5 bg-amber-50 border border-amber-200 rounded-lg">
+            <div><b>${u.name}</b> (${u.role}) - ID: <code>${u.username}</code></div>
+            <div class="flex gap-2">
+              <button onclick="approveUser(${u.id})" class="bg-emerald-600 text-white px-3 py-1 rounded text-xs font-bold">অনুমোদন দিন</button>
+              <button onclick="deleteUser(${u.id})" class="bg-red-600 text-white px-2 py-1 rounded text-xs">বাতিল</button>
+            </div>
+          </div>
+        `).join('');
+
+      const approved = appData.users.filter(u => u.approved);
+      document.getElementById('approvedUsersTable').innerHTML = approved.map(u => `
+        <tr class="border-b">
+          <td class="p-2 border font-semibold">${u.name}</td>
+          <td class="p-2 border">${u.username}</td>
+          <td class="p-2 border"><span class="bg-orange-100 text-orange-800 px-2 py-0.5 rounded text-xs">${u.role}</span></td>
+          <td class="p-2 border text-gray-400">••••••••</td>
+          <td class="p-2 border flex gap-1">
+            <button onclick="resetUserPassword(${u.id})" class="bg-blue-600 text-white px-2 py-1 rounded text-xs">পাসওয়ার্ড রিসেট</button>
+            <button onclick="deleteUser(${u.id})" class="bg-red-600 text-white px-2 py-1 rounded text-xs">মুছুন</button>
+          </td>
+        </tr>
+      `).join('');
+
+      document.getElementById('billsPipelineList').innerHTML = appData.expenses.length === 0 ? `<p class="text-sm text-gray-400">কোনো বিলের তথ্য নেই।</p>` :
+        appData.expenses.map(b => {
+          let actionBtn = "";
+          if (!b.gsApproved) {
+            actionBtn = `<button onclick="advanceBillStage(${b.id}, 'GS')" class="bg-amber-600 text-white px-3 py-1 rounded text-xs font-bold">সাধারণ সম্পাদক অনুমোদন</button>`;
+          } else if (!b.presApproved) {
+            actionBtn = `<button onclick="advanceBillStage(${b.id}, 'PRES')" class="bg-indigo-600 text-white px-3 py-1 rounded text-xs font-bold">সভাপতি অনুমোদন</button>`;
+          } else if (!b.disbursed) {
+            actionBtn = `<button onclick="advanceBillStage(${b.id}, 'TREASURER')" class="bg-emerald-600 text-white px-3 py-1 rounded text-xs font-bold">কোষাধ্যক্ষ বিল প্রদান করুন</button>`;
+          } else {
+            actionBtn = `<span class="bg-emerald-100 text-emerald-800 px-2.5 py-1 rounded text-xs font-bold">✔ বিল পরিশোধিত</span>`;
+          }
+
+          return `
+            <div class="p-3 border rounded-xl bg-gray-50 flex flex-wrap justify-between items-center gap-2">
+              <div class="space-y-1">
+                <div class="flex items-center gap-2">
+                  <span class="bg-orange-200 text-orange-900 text-xs px-2 py-0.5 rounded font-bold">${b.category}</span>
+                  <span class="font-bold text-sm">${b.title}</span>
+                  <span class="font-bold text-red-700 text-sm">(৳ ${b.amount})</span>
+                </div>
+                <p class="text-xs text-gray-500">প্রস্তুতকারক: ${b.createdBy} | তারিখ: ${b.date}</p>
+                <div class="flex gap-2 text-[11px]">
+                  <span class="${b.gsApproved ? 'text-emerald-700 font-bold' : 'text-gray-400'}">১. সাধারণ সম্পাদক ${b.gsApproved ? '✔' : '⏳'}</span>
+                  <span>➔</span>
+                  <span class="${b.presApproved ? 'text-emerald-700 font-bold' : 'text-gray-400'}">২. সভাপতি ${b.presApproved ? '✔' : '⏳'}</span>
+                  <span>➔</span>
+                  <span class="${b.disbursed ? 'text-emerald-700 font-bold' : 'text-gray-400'}">৩. কোষাধ্যক্ষ ${b.disbursed ? '✔' : '⏳'}</span>
+                </div>
+              </div>
+              <div class="flex items-center gap-2">
+                ${b.receiptImg ? `<button onclick="viewImage('${b.receiptImg}')" class="bg-slate-200 text-slate-800 px-2.5 py-1 rounded text-xs font-semibold">ভাউচার দেখুন</button>` : ''}
+                ${actionBtn}
+              </div>
+            </div>
+          `;
+        }).join('');
+
+      document.getElementById('committeeGrid').innerHTML = approved.map(u => `
+        <div class="p-3 border border-orange-100 rounded-xl bg-orange-50/50">
+          <p class="font-bold text-slate-800">${u.name}</p>
+          <p class="text-xs text-orange-700 font-semibold">${u.role}</p>
+          <p class="text-[11px] text-gray-500 mt-1">ইউজার আইডি: ${u.username}</p>
+        </div>
+      `).join('');
+    }
+
+    function getFilteredTransactions() {
+      const cat = document.getElementById('filterCategory').value;
+      const year = document.getElementById('filterYear').value;
+      const month = document.getElementById('filterMonth').value;
+      const flow = document.getElementById('filterFlow').value;
+
+      let rows = [];
+      if (flow === 'ALL' || flow === 'INCOME') {
+        appData.incomes.forEach(i => rows.push({
+          date: i.date, isoDate: i.isoDate, category: i.category,
+          desc: `${i.donor} (${i.type})`, flow: 'আয়', amount: i.amount, due: i.due || 0, img: null
+        }));
+      }
+      if (flow === 'ALL' || flow === 'EXPENSE') {
+        appData.expenses.filter(e => e.disbursed).forEach(e => rows.push({
+          date: e.date, isoDate: e.isoDate, category: e.category,
+          desc: `${e.title} (প্রস্তুত: ${e.createdBy})`, flow: 'ব্যয়', amount: e.amount, due: e.due || 0, img: e.receiptImg
+        }));
+      }
+
+      return rows.filter(r => {
+        if (cat !== 'ALL' && r.category !== cat) return false;
+        if (year !== 'ALL' && !r.isoDate.startsWith(year)) return false;
+        if (month !== 'ALL' && r.isoDate.split('-')[1] !== month) return false;
+        return true;
+      });
+    }
+
+    function renderLedger() {
+      const rows = getFilteredTransactions();
+      const tbody = document.getElementById('ledgerTableBody');
+      if (rows.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="7" class="p-4 text-center text-gray-400">এই ফিল্টারে কোনো হিসাব পাওয়া যায়নি।</td></tr>`;
+        return;
+      }
+      tbody.innerHTML = rows.map(r => `
+        <tr class="border-b hover:bg-gray-50">
+          <td class="p-2 border">${r.date}</td>
+          <td class="p-2 border font-semibold">${r.category}</td>
+          <td class="p-2 border">${r.desc}</td>
+          <td class="p-2 border"><span class="px-2 py-0.5 rounded text-xs font-bold ${r.flow === 'আয়' ? 'bg-emerald-100 text-emerald-800' : 'bg-red-100 text-red-800'}">${r.flow}</span></td>
+          <td class="p-2 border text-right font-bold ${r.flow === 'আয়' ? 'text-emerald-700' : 'text-red-700'}">${r.amount}</td>
+          <td class="p-2 border text-right text-amber-700">${r.due}</td>
+          <td class="p-2 border text-center no-print">
+            ${r.img ? `<button onclick="viewImage('${r.img}')" class="text-blue-600 underline text-xs">ছবি দেখুন</button>` : '-'}
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    function viewImage(src) {
+      document.getElementById('modalImgSrc').src = src;
+      document.getElementById('imgModal').classList.remove('hidden');
+    }
+
+    function exportToExcel() {
+      const rows = getFilteredTransactions();
+      let csv = "﻿তারিখ,খাত/পূজা,বিবরণ,ধরন,টাকার পরিমাণ,বকেয়া
+";
+      rows.forEach(r => {
+        csv += `"${r.date}","${r.category}","${r.desc}","${r.flow}",${r.amount},${r.due}
+`;
+      });
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(blob);
+      link.download = `Panchayat_Hisab_${new Date().toISOString().split('T')[0]}.csv`;
+      link.click();
+    }
+
+    function printPadReport() {
+      window.print();
+    }
+
+    refreshUI();
+  </script>
+</body>
+</html>
